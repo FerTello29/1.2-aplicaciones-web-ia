@@ -12,6 +12,13 @@ const newChatButton = document.getElementById("newChatButton");
 const MAX_HISTORY = 10;
 let history = [];
 
+const LABELS = {
+   user: "Tú",
+   assistant: "IA",
+   loading: "IA",
+   error: "Aviso"
+};
+
 const GREETING = messages
    .querySelector(".message-content")
    .textContent
@@ -23,7 +30,7 @@ function addMessage(text, type) {
 
    const label = document.createElement("div");
    label.classList.add("message-label");
-   label.textContent = type === "user" ? "Tú" : "IA";
+   label.textContent = LABELS[type];
 
    const content = document.createElement("div");
    content.classList.add("message-content");
@@ -46,6 +53,30 @@ function updateCounter() {
 }
 
 input.addEventListener("input", updateCounter);
+
+function getErrorMessage(status, serverMessage) {
+   switch (status) {
+       case 400:
+           return "Error 400: la solicitud no es válida. "
+               + (serverMessage || "Revisa tu mensaje.");
+
+       case 403:
+           return "Error 403: este sitio no está autorizado "
+               + "para usar el asistente.";
+
+       case 413:
+           return "Error 413: el mensaje o la conversación es demasiado "
+               + "grande. Escribe un mensaje más corto o inicia "
+               + "una nueva conversación.";
+
+       case 500:
+           return "Error 500: el servidor no pudo obtener la respuesta "
+               + "de la IA. Intenta de nuevo en unos momentos.";
+
+       default:
+           return "Error " + status + ": ocurrió un problema inesperado.";
+   }
+}
 
 function resetConversation() {
    history = [];
@@ -91,14 +122,30 @@ form.addEventListener("submit", async (event) => {
            })
        });
 
-       const data = await response.json();
+       let data = {};
+
+       try {
+           data = await response.json();
+       }
+       catch (parseError) {
+           data = {};
+       }
 
        loading.remove();
 
        if (!response.ok) {
-           throw new Error(
-               data.error || "Error del servidor"
+           console.error(
+               "Respuesta de error del servidor:",
+               response.status,
+               data.error
            );
+
+           addMessage(
+               getErrorMessage(response.status, data.error),
+               "error"
+           );
+
+           return;
        }
 
        addMessage(data.reply, "assistant");
@@ -113,9 +160,13 @@ form.addEventListener("submit", async (event) => {
    catch (error) {
        loading.remove();
 
+       console.error("Error de conexión:", error);
+
        addMessage(
-           "Error: " + error.message,
-           "assistant"
+           "Error de conexión: no fue posible comunicarse con el "
+               + "servidor. Revisa tu conexión a Internet e intenta "
+               + "de nuevo.",
+           "error"
        );
    }
    finally {

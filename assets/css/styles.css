@@ -113,6 +113,12 @@ body {
    font-style: italic;
 }
 
+.message.error .message-content {
+   background: #fef2f2;
+   color: #991b1b;
+   border: 1px solid #fecaca;
+}
+
 .chat-form {
    display: flex;
    gap: 12px;
