@@ -7,6 +7,12 @@ const messages = document.getElementById("messages");
 const sendButton = document.getElementById("sendButton");
 const charCounter = document.getElementById("charCounter");
 const MAX_CHARS = input.maxLength;
+const newChatButton = document.getElementById("newChatButton");
+
+const GREETING = messages
+   .querySelector(".message-content")
+   .textContent
+   .trim();
 
 function addMessage(text, type) {
    const container = document.createElement("div");
@@ -38,6 +44,17 @@ function updateCounter() {
 
 input.addEventListener("input", updateCounter);
 
+function resetConversation() {
+   messages.replaceChildren();
+   addMessage(GREETING, "assistant");
+
+   input.value = "";
+   updateCounter();
+   input.focus();
+}
+
+newChatButton.addEventListener("click", resetConversation);
+
 form.addEventListener("submit", async (event) => {
    event.preventDefault();
 
@@ -53,6 +70,7 @@ form.addEventListener("submit", async (event) => {
    updateCounter();
    input.disabled = true;
    sendButton.disabled = true;
+   newChatButton.disabled = true;
 
    const loading = addMessage("Pensando...", "loading");
 
@@ -90,6 +108,7 @@ form.addEventListener("submit", async (event) => {
    finally {
        input.disabled = false;
        sendButton.disabled = false;
+       newChatButton.disabled = false;
        input.focus();
    }
 });
