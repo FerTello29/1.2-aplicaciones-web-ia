@@ -5,6 +5,8 @@ const form = document.getElementById("chatForm");
 const input = document.getElementById("messageInput");
 const messages = document.getElementById("messages");
 const sendButton = document.getElementById("sendButton");
+const charCounter = document.getElementById("charCounter");
+const MAX_CHARS = input.maxLength;
 
 function addMessage(text, type) {
    const container = document.createElement("div");
@@ -27,6 +29,15 @@ function addMessage(text, type) {
    return container;
 }
 
+function updateCounter() {
+   const length = input.value.length;
+
+   charCounter.textContent = length + " / " + MAX_CHARS;
+   charCounter.classList.toggle("near-limit", length >= 900);
+}
+
+input.addEventListener("input", updateCounter);
+
 form.addEventListener("submit", async (event) => {
    event.preventDefault();
 
@@ -39,6 +50,7 @@ form.addEventListener("submit", async (event) => {
    addMessage(message, "user");
 
    input.value = "";
+   updateCounter();
    input.disabled = true;
    sendButton.disabled = true;
 
