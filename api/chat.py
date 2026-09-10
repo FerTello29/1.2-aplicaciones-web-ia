@@ -10,6 +10,10 @@ ALLOWED_ORIGIN = os.environ.get(
    ""
 ).rstrip("/")
 
+MAX_BODY_BYTES = 30000
+MAX_HISTORY = 10
+MAX_HISTORY_CHARS = 3000
+
 
 class handler(BaseHTTPRequestHandler):
 
@@ -95,7 +99,7 @@ class handler(BaseHTTPRequestHandler):
                self.headers.get("Content-Length", 0)
            )
 
-           if content_length <= 0 or content_length > 5000:
+           if content_length <= 0 or content_length > MAX_BODY_BYTES:
                self.send_json(
                    413,
                    {"error": "Petición no válida o demasiado grande."}
@@ -107,6 +111,13 @@ class handler(BaseHTTPRequestHandler):
            data = json.loads(
                body.decode("utf-8")
            )
+
+           if not isinstance(data, dict):
+               self.send_json(
+                   400,
+                   {"error": "El cuerpo debe ser un objeto JSON."}
+               )
+               return
 
            message = str(
                data.get("message", "")
@@ -126,6 +137,43 @@ class handler(BaseHTTPRequestHandler):
                )
                return
 
+           history = data.get("history", [])
+
+           if not isinstance(history, list):
+               self.send_json(
+                   400,
+                   {"error": "El historial no es válido."}
+               )
+               return
+
+           conversation = []
+
+           for item in history[-MAX_HISTORY:]:
+               if not isinstance(item, dict):
+                   continue
+
+               role = item.get("role")
+               content = str(
+                   item.get("content", "")
+               ).strip()
+
+               if role not in ("user", "assistant") or not content:
+                   continue
+
+               conversation.append(
+                   {
+                       "role": role,
+                       "content": content[:MAX_HISTORY_CHARS]
+                   }
+               )
+
+           conversation.append(
+               {
+                   "role": "user",
+                   "content": message
+               }
+           )
+
            api_key = os.environ.get(
                "OPENAI_API_KEY"
            )
@@ -143,7 +191,7 @@ class handler(BaseHTTPRequestHandler):
 
            response = client.responses.create(
                model="gpt-5.6-luna",
-                           instructions="""
+               instructions="""
                Eres un asistente educativo especializado en Redes
                de Computadoras e Internet de las Cosas (IoT).
                Responde siempre en español, de manera clara,
@@ -159,7 +207,7 @@ class handler(BaseHTTPRequestHandler):
                invertidas. Para listas, usa un guion al inicio
                de cada línea.
                """,
-               input=message,
+               input=conversation,
                reasoning={
                    "effort": "none"
                },

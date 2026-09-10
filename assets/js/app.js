@@ -9,6 +9,9 @@ const charCounter = document.getElementById("charCounter");
 const MAX_CHARS = input.maxLength;
 const newChatButton = document.getElementById("newChatButton");
 
+const MAX_HISTORY = 10;
+let history = [];
+
 const GREETING = messages
    .querySelector(".message-content")
    .textContent
@@ -45,6 +48,8 @@ function updateCounter() {
 input.addEventListener("input", updateCounter);
 
 function resetConversation() {
+   history = [];
+
    messages.replaceChildren();
    addMessage(GREETING, "assistant");
 
@@ -81,7 +86,8 @@ form.addEventListener("submit", async (event) => {
                "Content-Type": "application/json"
            },
            body: JSON.stringify({
-               message: message
+               message: message,
+               history: history
            })
        });
 
@@ -96,6 +102,13 @@ form.addEventListener("submit", async (event) => {
        }
 
        addMessage(data.reply, "assistant");
+
+       history.push(
+           { role: "user", content: message },
+           { role: "assistant", content: data.reply }
+       );
+
+       history = history.slice(-MAX_HISTORY);
    }
    catch (error) {
        loading.remove();
